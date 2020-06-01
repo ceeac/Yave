@@ -32,6 +32,7 @@ class Archetype;
 
 class ComponentInfoSerializerBase;
 class ComponentSerializerWrapper;
+class ComponentContainerBase;
 
 
 static constexpr usize entities_per_chunk = 1024;

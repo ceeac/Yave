@@ -24,7 +24,7 @@ SOFTWARE.
 
 #include "ComponentView.h"
 
-#include "ArchetypeRuntimeInfo.h"
+#include "EntityPrefab.h"
 
 
 namespace y {
@@ -58,9 +58,14 @@ class Archetype : NonMovable {
 
 		const ArchetypeRuntimeInfo& runtime_info() const;
 		core::Span<ComponentRuntimeInfo> component_infos() const;
+		const ComponentRuntimeInfo* component_info(u32 type_id) const;
 
 		void add_entity(EntityData& data);
 		void add_entities(core::MutableSpan<EntityData> entities);
+
+		EntityPrefab create_prefab(const EntityData& data);
+
+		void* raw_component(const EntityData& data, u32 type_id);
 
 
 

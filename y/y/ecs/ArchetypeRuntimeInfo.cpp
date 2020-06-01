@@ -38,6 +38,25 @@ ArchetypeRuntimeInfo::ArchetypeRuntimeInfo(const ArchetypeRuntimeInfo& other) : 
 	std::copy_n(other._component_infos.get(), _component_count, _component_infos.get());
 }
 
+const ComponentRuntimeInfo* ArchetypeRuntimeInfo::info_or_null(u32 type_id) const {
+	// The specs seems to imply that this is ok...
+	const auto cmp = [](const ComponentRuntimeInfo& info, u32 index) {
+		return info.type_id < index;
+	};
+	const ComponentRuntimeInfo* info = std::lower_bound(begin(), end(), type_id, cmp);
+	if(info != end() && info->type_id == type_id) {
+		return info;
+	}
+	return nullptr;
+}
+
+ArchetypeRuntimeInfo ArchetypeRuntimeInfo::create(core::Span<ComponentRuntimeInfo> infos) {
+	ArchetypeRuntimeInfo info(infos.size());
+	std::copy(infos.begin(), infos.end(), info._component_infos.get());
+	info.sort_component_infos();
+	return info;
+}
+
 usize ArchetypeRuntimeInfo::component_count() const {
 	return _component_count;
 }

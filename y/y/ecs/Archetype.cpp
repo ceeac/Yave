@@ -43,7 +43,7 @@ Archetype::Archetype(ArchetypeRuntimeInfo info, memory::PolymorphicAllocatorBase
 Archetype::~Archetype() {
 	const auto components = _info.component_infos();
 	if(components.size()) {
-		log_msg(fmt("destroying arch with % components % entities", components.size(), entity_count()));
+		//log_msg(fmt("destroying arch with % components % entities", components.size(), entity_count()));
 		/*for(const ComponentRuntimeInfo& info : components) {
 			log_msg(info.type_name);
 		}*/
@@ -92,6 +92,10 @@ core::Span<ComponentRuntimeInfo> Archetype::component_infos() const {
 	return _info.component_infos();
 }
 
+const ComponentRuntimeInfo* Archetype::component_info(u32 type_id) const {
+	return _info.info_or_null(type_id);
+}
+
 void Archetype::add_entity(EntityData& data) {
 	add_entities(core::MutableSpan<EntityData>(data));
 }
@@ -105,7 +109,6 @@ void Archetype::add_entities(core::MutableSpan<EntityData> entities, bool update
 
 	const usize left_in_chunk = entities_per_chunk - _last_chunk_size;
 	const usize first = std::min(left_in_chunk, entities.size());
-
 
 	if(update_data) {
 		const usize start = entity_count();
@@ -149,6 +152,38 @@ void Archetype::remove_entity(EntityData& data) {
 	}
 	--_last_chunk_size;
 	data.invalidate();
+}
+
+void* Archetype::raw_component(const EntityData& data, u32 type_id) {
+	y_debug_assert(data.archetype == this);
+
+	if(const ComponentRuntimeInfo* info = component_info(type_id)) {
+		const usize chunk_index = data.archetype_index / entities_per_chunk;
+		const usize item_index = data.archetype_index % entities_per_chunk;
+		void* chunk = _chunk_data[chunk_index];
+		return info->index_ptr(chunk, item_index);
+	}
+	return nullptr;
+}
+
+EntityPrefab Archetype::create_prefab(const EntityData& data) {
+	y_debug_assert(data.archetype == this);
+
+	const usize chunk_index = data.archetype_index / entities_per_chunk;
+	const usize item_index = data.archetype_index % entities_per_chunk;
+	const void* chunk = _chunk_data[chunk_index];
+
+	EntityPrefab prefab;
+	for(const ComponentRuntimeInfo& info : component_infos()) {
+		const void* comp_data = info.index_ptr(chunk, item_index);
+		auto comp = info.create_component_container(comp_data);
+		if(comp) {
+			prefab._components.emplace_back(std::move(comp));
+		} else {
+			log_msg(fmt("Component % is not copyable and was excluded from prefab", info.type_name), Log::Warning);
+		}
+	}
+	return prefab;
 }
 
 void Archetype::transfer_to(Archetype* other, core::MutableSpan<EntityData> entities) {

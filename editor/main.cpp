@@ -184,67 +184,79 @@ int main(int argc, char** argv) {
 using namespace y;
 
 
-struct A {
-	int x = 7;
+
+template<usize I>
+struct C {
+	float x = I;
 
 	y_serde3(x)
 };
 
-struct B {
-	float str = 9.0f;
 
-	y_serde3(str)
-};
-
-const usize entity_count = 100000;
+const usize entity_count = 1000;
 
 template<typename W>
-void add_2(W& world) {
+void add(W& world) {
 	log_msg(ct_type_name<W>());
-	core::DebugTimer _("Create 2 components");
+#define MAYBE_ADD(num) if(rng() & 0x1) { world.template add_components<C<num>>(id); }
+	core::DebugTimer _("Create many components");
 	math::FastRandom rng;
 	for(usize i = 0; i != entity_count; ++i) {
 		const auto id = world.create_entity();
-		const usize r = rng() & 0x3;
-		switch(r) {
-			case 1:
-				world.template add_components<A>(id);
-			break;
-			case 2:
-				world.template add_components<B>(id);
-			break;
-			case 3:
-				world.template add_components<A, B>(id);
-			break;
-			default:
-			break;
-		}
+		MAYBE_ADD(0)
+		MAYBE_ADD(1)
+		MAYBE_ADD(2)
+		MAYBE_ADD(3)
+		MAYBE_ADD(4)
+		MAYBE_ADD(5)
+		MAYBE_ADD(6)
+		MAYBE_ADD(7)
+		MAYBE_ADD(8)
+		MAYBE_ADD(9)
+		MAYBE_ADD(10)
+		MAYBE_ADD(11)
+		MAYBE_ADD(12)
+		MAYBE_ADD(13)
+		MAYBE_ADD(14)
+		MAYBE_ADD(15)
+		MAYBE_ADD(16)
+		MAYBE_ADD(17)
+		MAYBE_ADD(18)
+		MAYBE_ADD(19)
 	}
+#undef MAYBE_ADD
 }
 
 template<typename V>
-float iter_2(V&& view) {
+float iter(V&& view) {
 	float sum = 0.0;
 	core::DebugTimer _("Iterate 2 components");
 	for(const auto& [a, b] : view) {
 		sum -= a.x;
-		sum += b.str;
+		sum += b.x;
 	}
+	for(usize i = 0; i != 100; ++i) {
+		for(const auto& [a, b] : view) {
+			sum -= a.x / (b.x + 1.0f);
+		}
+		sum += sum * 4.0f;
+	}
+
 	return sum;
 }
 
 int main() {
 	{
 		y::ecs::EntityWorld world;
-		add_2(world);
-		const float res = iter_2(world.view<A, B>());
+		add(world);
+		const float res = iter(world.view<C<7>, C<19>>());
 		log_msg(fmt("result = %", res));
 	}
 
 	{
 		yave::ecs::EntityWorld world;
-		add_2(world);
-		const float res = iter_2(world.view<const A, const B>().components());
+		add(world);
+		const float res = iter(world.view<const C<7>, const C<19>>().components());
 		log_msg(fmt("result = %", res));
 	}
 
